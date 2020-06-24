@@ -53,21 +53,6 @@ class NovaDependencyContainer extends Field
     }
 
     /**
-     * Adds a dependency for not
-     *
-     * @param $field
-     * @return NovaDependencyContainer
-     */
-    public function dependsOnNot($field, $value)
-    {
-        return $this->withMeta([
-            'dependencies' => array_merge($this->meta['dependencies'], [
-                array_merge($this->getFieldLayout($field), ['not' => $value])
-            ])
-        ]);
-    }
-
-    /**
      * Adds a dependency for not empty
      *
      * @param $field
@@ -168,21 +153,22 @@ class NovaDependencyContainer extends Field
                 continue;
             }
 
-            if (array_key_exists('not', $dependency) && $resource->{$dependency['property']} != $dependency['not']) {
-                $this->meta['dependencies'][$index]['satisfied'] = true;
-                continue;
-            }
-
             if (array_key_exists('value', $dependency)) {
-                if ($dependency['value'] == $resource->{$dependency['property']}) {
+                if(is_array($resource) && $dependency['value'] == $resource[$dependency['property']]) {
                     $this->meta['dependencies'][$index]['satisfied'] = true;
                     continue;
                 }
-                // @todo: quickfix for MorphTo
-                $morphable_attribute = $resource->getAttribute($dependency['property'].'_type');
-                if ($morphable_attribute !== null && Str::endsWith($morphable_attribute, '\\'.$dependency['value'])) {
-                    $this->meta['dependencies'][$index]['satisfied'] = true;
-                    continue;
+                else if(is_object($resource)) {
+                    if($dependency['value'] == $resource->{$dependency['property']}) {
+                        $this->meta['dependencies'][$index]['satisfied'] = true;
+                        continue;
+                    }
+                    // @todo: quickfix for MorphTo
+                    $morphable_attribute = $resource->getAttribute($dependency['property'].'_type');
+                    if($morphable_attribute !== null && Str::endsWith($morphable_attribute, '\\'.$dependency['value'])) {
+                        $this->meta['dependencies'][$index]['satisfied'] = true;
+                        continue;
+                    }
                 }
             }
 
@@ -246,10 +232,6 @@ class NovaDependencyContainer extends Field
 
             // inverted
             if (array_key_exists('nullOrZero', $dependency) && in_array($request->get($dependency['property']), [null, 0, '0'], true)) {
-                $satisfiedCounts++;
-            }
-
-            if (array_key_exists('not', $dependency) && $dependency['not'] != $request->get($dependency['property'])) {
                 $satisfiedCounts++;
             }
 
